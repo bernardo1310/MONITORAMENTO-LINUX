@@ -1,0 +1,6 @@
+# terminal 1 — backend
+source .venv/bin/activate
+python3 app.py
+
+# terminal 2 — abre um novo terminal no VS Code (ícone + no painel)
+python3 -m http.server 8080

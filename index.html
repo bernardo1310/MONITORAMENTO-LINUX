@@ -3,54 +3,78 @@
 <head>
 <meta charset="UTF-8"/>
 <title>Monitor Linux</title>
+
+<!-- biblioteca de gráficos carregada da internet, sem precisar instalar -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
 <style>
-  body { font-family: monospace; background: #1e1e1e; color: #ddd; padding: 20px; margin: 0; }
-  h1   { color: #fff; margin-bottom: 16px; }
-
-  nav button {
-    background: #2a2a2a; border: 1px solid #444; color: #aaa;
-    padding: 6px 14px; cursor: pointer; margin-right: 4px; border-radius: 4px;
+  /* ── base da página ── */
+  body {
+    font-family: monospace;
+    background: #1e1e1e;
+    color: #ddd;
+    padding: 20px;
+    margin: 0;
   }
-  nav button.on { color: #fff; border-color: #fff; }
 
-  .tab { display: none; margin-top: 20px; }
+  /* ── botões de navegação entre abas ── */
+  nav button {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #aaa;
+    padding: 6px 14px;
+    cursor: pointer;
+    margin-right: 4px;
+    border-radius: 4px;
+  }
+  nav button.on { color: #fff; border-color: #fff; } /* aba ativa */
+
+  /* ── conteúdo de cada aba: esconde todas, mostra só a ativa ── */
+  .tab    { display: none;  margin-top: 20px; }
   .tab.on { display: block; }
 
+  /* ── cards de resumo (CPU, RAM usada, RAM livre) ── */
   .cards { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-  .card  { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 12px 16px; min-width: 130px; }
-  .card .l { font-size: 11px; color: #888; }
-  .card .v { font-size: 20px; font-weight: bold; color: #fff; margin: 4px 0 2px; }
-  .card .s { font-size: 11px; color: #888; }
+  .card  { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 12px 16px; }
 
+  /* ── caixas dos gráficos lado a lado ── */
   .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-  .box { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 12px; }
+  .box    { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 12px; }
   .box h3 { font-size: 11px; color: #888; margin-bottom: 10px; }
 
-  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; color: #888; }
+  /* ── barra de progresso usada nos núcleos de CPU ── */
+  .bar-row   { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; color: #888; }
   .bar-track { flex: 1; height: 4px; background: #444; border-radius: 4px; overflow: hidden; }
   .bar-fill  { height: 100%; background: #aaa; border-radius: 4px; transition: width .4s; }
 
-  .toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
+  /* ── campos de texto e botões usados nos formulários ── */
   input { background: #2a2a2a; border: 1px solid #444; color: #ddd; padding: 6px 10px; border-radius: 4px; font: inherit; outline: none; }
   input:focus { border-color: #aaa; }
-  .btn { background: #2a2a2a; border: 1px solid #aaa; color: #ddd; padding: 6px 14px; border-radius: 4px; cursor: pointer; font: inherit; }
-  .btn:hover { background: #333; }
+  .btn  { background: #2a2a2a; border: 1px solid #aaa; color: #ddd; padding: 6px 14px; border-radius: 4px; cursor: pointer; font: inherit; }
 
+  /* ── tabela de processos ── */
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   th { text-align: left; padding: 8px 10px; border-bottom: 1px solid #444; color: #888; font-size: 11px; }
   td { padding: 7px 10px; border-bottom: 1px solid #2e2e2e; }
+
+  /* ── botão de encerrar processo ── */
   .kill { background: none; border: 1px solid #666; color: #ccc; padding: 2px 8px; border-radius: 4px; cursor: pointer; font: inherit; font-size: 11px; }
   .kill:hover { border-color: #f66; color: #f66; }
 
-  .form { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 14px; margin-bottom: 10px; }
+  /* ── caixas de formulário (permissões) ── */
+  .form    { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 14px; margin-bottom: 10px; }
   .form h3 { font-size: 12px; color: #aaa; margin-bottom: 10px; }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row     { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ── mensagem de retorno (sucesso ou erro) ── */
   .msg { font-size: 12px; margin-top: 8px; padding: 6px 10px; border-radius: 4px; display: none; }
   .ok  { border: 1px solid #4a6; color: #6c6; }
   .er  { border: 1px solid #a44; color: #f66; }
+
+  /* ── resultado da consulta de permissão ── */
   .result { border: 1px solid #444; border-radius: 4px; padding: 8px 12px; margin-top: 10px; font-size: 12px; display: none; }
 
+  /* ── em telas pequenas, gráficos empilham verticalmente ── */
   @media(max-width: 600px) { .charts { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -58,51 +82,93 @@
 
 <h1>Monitor Linux</h1>
 
+<!-- navegação entre abas -->
 <nav>
-  <button class="on" onclick="tab('cpu',this)">CPU / Memória</button>
-  <button onclick="tab('proc',this)">Processos</button>
-  <button onclick="tab('perm',this)">Permissões</button>
+  <button class="on" onclick="tab('cpu', this)">CPU / Memória</button>
+  <button onclick="tab('proc', this)">Processos</button>
+  <button onclick="tab('perm', this)">Permissões</button>
 </nav>
 
-<!-- CPU / MEM -->
+
+<!-- ═══════════════ ABA: CPU / MEMÓRIA ═══════════════ -->
 <div id="tab-cpu" class="tab on">
+
+  <!-- cards de resumo no topo -->
   <div class="cards">
-    <div class="card"><div class="l">CPU</div><div class="v" id="cpu-v">--%</div><div class="s" id="cpu-s">--</div></div>
-    <div class="card"><div class="l">RAM usada</div><div class="v" id="mem-v">--</div><div class="s" id="mem-s">--</div></div>
-    <div class="card"><div class="l">RAM livre</div><div class="v" id="mem-f">--</div><div class="s" id="mem-t">--</div></div>
+    <div class="card">
+      <div style="font-size:11px;color:#888">CPU</div>
+      <div style="font-size:20px;font-weight:bold;color:#fff;margin:4px 0 2px" id="cpu-v">--%</div>
+      <div style="font-size:11px;color:#888" id="cpu-s">--</div>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;color:#888">RAM usada</div>
+      <div style="font-size:20px;font-weight:bold;color:#fff;margin:4px 0 2px" id="mem-v">--</div>
+      <div style="font-size:11px;color:#888" id="mem-s">--</div>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;color:#888">RAM livre</div>
+      <div style="font-size:20px;font-weight:bold;color:#fff;margin:4px 0 2px" id="mem-f">--</div>
+      <div style="font-size:11px;color:#888" id="mem-t">--</div>
+    </div>
   </div>
+
+  <!-- gráficos de linha (preenchidos pelo Chart.js via JavaScript) -->
   <div class="charts">
     <div class="box"><h3>CPU % — últimos 60s</h3><canvas id="g-cpu"></canvas></div>
     <div class="box"><h3>RAM % — últimos 60s</h3><canvas id="g-mem"></canvas></div>
   </div>
-  <div class="box"><h3>CPU por núcleo</h3><div id="cores"></div></div>
+
+  <!-- barras de uso por núcleo (geradas dinamicamente pelo JS) -->
+  <div class="box">
+    <h3>CPU por núcleo</h3>
+    <div id="cores"></div>
+  </div>
+
 </div>
 
-<!-- PROCESSOS -->
+
+<!-- ═══════════════ ABA: PROCESSOS ═══════════════ -->
 <div id="tab-proc" class="tab">
-  <div class="toolbar">
-    <input id="s" placeholder="Filtrar por nome…" onkeydown="if(event.key==='Enter')loadProc()"/>
+
+  <div class="row" style="margin-bottom:10px">
+    <input id="s" placeholder="Filtrar por nome…" onkeydown="if(event.key==='Enter') loadProc()"/>
     <button class="btn" onclick="loadProc()">↺ Atualizar</button>
   </div>
+
+  <!-- mensagem de feedback ao encerrar processo -->
   <div id="pmsg" class="msg"></div>
+
   <table>
-    <thead><tr><th>PID</th><th>Nome</th><th>Usuário</th><th>Status</th><th>CPU%</th><th>Mem MB</th><th></th></tr></thead>
-    <tbody id="tbody"><tr><td colspan="7" style="padding:20px;color:#666;text-align:center">Carregando…</td></tr></tbody>
+    <thead>
+      <tr>
+        <th>PID</th><th>Nome</th><th>Usuário</th>
+        <th>Status</th><th>CPU%</th><th>Mem MB</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr><td colspan="7" style="padding:20px;color:#666;text-align:center">Carregando…</td></tr>
+    </tbody>
   </table>
+
 </div>
 
-<!-- PERMISSÕES -->
+
+<!-- ═══════════════ ABA: PERMISSÕES ═══════════════ -->
 <div id="tab-perm" class="tab">
+
+  <!-- consultar permissões de um arquivo -->
   <div class="form">
-    <h3>Consultar</h3>
+    <h3>Consultar permissões</h3>
     <div class="row">
       <input id="qp" placeholder="/caminho/do/arquivo"/>
       <button class="btn" onclick="queryPerm()">Consultar</button>
     </div>
     <div class="result" id="qr"></div>
   </div>
+
+  <!-- alterar permissões com chmod -->
   <div class="form">
-    <h3>chmod</h3>
+    <h3>chmod — alterar permissões</h3>
     <div class="row">
       <input id="cp" placeholder="/caminho/do/arquivo"/>
       <input id="cm" placeholder="755" style="width:80px"/>
@@ -110,8 +176,10 @@
     </div>
     <div class="msg" id="cmsg"></div>
   </div>
+
+  <!-- alterar dono com chown -->
   <div class="form">
-    <h3>chown</h3>
+    <h3>chown — alterar dono</h3>
     <div class="row">
       <input id="op" placeholder="/caminho/do/arquivo"/>
       <input id="oo" placeholder="user:grupo" style="width:120px"/>
@@ -119,123 +187,202 @@
     </div>
     <div class="msg" id="omsg"></div>
   </div>
+
 </div>
 
+
 <script>
-const API = "http://localhost:5000/api";
+  // endereço base da API (backend Flask rodando na porta 5000)
+  const API = "http://localhost:5000/api";
 
-function tab(id, btn) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("on"));
-  document.querySelectorAll("nav button").forEach(b => b.classList.remove("on"));
-  document.getElementById("tab-"+id).classList.add("on");
-  btn.classList.add("on");
-  if (id === "proc") loadProc();
-}
 
-function mkChart(id) {
-  return new Chart(document.getElementById(id), {
-    type: "line",
-    data: { labels: Array(60).fill(""), datasets: [{ data: Array(60).fill(null),
-      borderColor: "#aaa", backgroundColor: "#aaa22", borderWidth: 1.5,
-      pointRadius: 0, fill: true, tension: .35 }] },
-    options: { animation: false, plugins: { legend: { display: false } },
-      scales: { x: { display: false },
-        y: { min: 0, max: 100, grid: { color: "#333" },
-             ticks: { color: "#666", font: { size: 10 }, callback: v => v+"%" } } } }
-  });
-}
-const gc = mkChart("g-cpu");
-const gm = mkChart("g-mem");
+  // ── troca de abas ──────────────────────────────────────────
+  function tab(id, btn) {
+    // esconde todas as abas e desmarca todos os botões
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("on"));
+    document.querySelectorAll("nav button").forEach(b => b.classList.remove("on"));
+    // mostra a aba clicada e marca o botão
+    document.getElementById("tab-" + id).classList.add("on");
+    btn.classList.add("on");
+    // ao entrar na aba de processos, carrega a lista imediatamente
+    if (id === "proc") loadProc();
+  }
 
-function push(chart, v) {
-  chart.data.datasets[0].data.shift();
-  chart.data.datasets[0].data.push(v);
-  chart.update("none");
-}
 
-async function poll() {
-  try {
-    const [c, m] = await Promise.all([
-      fetch(API+"/cpu").then(r=>r.json()),
-      fetch(API+"/memory").then(r=>r.json()),
-    ]);
-    document.getElementById("cpu-v").textContent = c.percent.toFixed(1)+"%";
-    document.getElementById("cpu-s").textContent = c.cores+" núcleos";
-    document.getElementById("mem-v").textContent = m.used_mb.toFixed(0)+" MB";
-    document.getElementById("mem-s").textContent = m.percent.toFixed(1)+"% usado";
-    document.getElementById("mem-f").textContent = m.free_mb.toFixed(0)+" MB";
-    document.getElementById("mem-t").textContent = m.total_mb.toFixed(0)+" MB total";
-    push(gc, c.percent); push(gm, m.percent);
-
-    const div = document.getElementById("cores");
-    if (div.children.length !== c.per_core.length)
-      div.innerHTML = c.per_core.map((_,i) => `
-        <div class="bar-row">
-          <span style="width:48px">Core ${i}</span>
-          <div class="bar-track"><div class="bar-fill" id="f${i}" style="width:0%"></div></div>
-          <span id="l${i}" style="width:30px;text-align:right">0%</span>
-        </div>`).join("");
-
-    c.per_core.forEach((p,i) => {
-      const f = document.getElementById("f"+i), l = document.getElementById("l"+i);
-      if (!f) return;
-      f.style.width = p+"%";
-      l.textContent = p.toFixed(0)+"%";
+  // ── criação dos gráficos ───────────────────────────────────
+  // função reutilizável para criar um gráfico de linha vazio
+  function mkChart(id) {
+    return new Chart(document.getElementById(id), {
+      type: "line",
+      data: {
+        labels: Array(60).fill(""),   // 60 pontos no eixo X (sem rótulo)
+        datasets: [{
+          data: Array(60).fill(null), // começa com valores nulos
+          borderColor: "#aaa",
+          backgroundColor: "#aaa22",
+          borderWidth: 1.5,
+          pointRadius: 0,             // sem ponto em cada valor
+          fill: true,
+          tension: .35                // linha levemente curva
+        }]
+      },
+      options: {
+        animation: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: {
+            min: 0, max: 100,
+            grid: { color: "#333" },
+            ticks: { color: "#666", font: { size: 10 }, callback: v => v + "%" }
+          }
+        }
+      }
     });
-  } catch(e) { console.warn(e); }
-}
-poll(); setInterval(poll, 2000);
+  }
 
-async function loadProc() {
-  const q = document.getElementById("s").value;
-  const tb = document.getElementById("tbody");
-  tb.innerHTML = `<tr><td colspan="7" style="padding:20px;color:#666;text-align:center">Carregando…</td></tr>`;
-  const ps = await fetch(`${API}/processes?search=${encodeURIComponent(q)}`).then(r=>r.json());
-  if (!ps.length) { tb.innerHTML=`<tr><td colspan="7" style="padding:20px;color:#666;text-align:center">Nenhum processo.</td></tr>`; return; }
-  tb.innerHTML = ps.map(p => `<tr>
-    <td style="color:#666">${p.pid}</td>
-    <td>${p.name}</td>
-    <td style="color:#888">${p.user}</td>
-    <td style="color:#888">${p.status}</td>
-    <td>${p.cpu}%</td>
-    <td>${p.mem_mb}</td>
-    <td><button class="kill" onclick="doKill(${p.pid},'${p.name}')">✕</button></td>
-  </tr>`).join("");
-}
+  const gc = mkChart("g-cpu"); // gráfico CPU
+  const gm = mkChart("g-mem"); // gráfico RAM
 
-async function doKill(pid, name) {
-  if (!confirm(`Encerrar "${name}" (PID ${pid})?`)) return;
-  const r = await fetch(`${API}/processes/${pid}`, {method:"DELETE"}).then(r=>r.json());
-  msg("pmsg", r.msg, r.ok); loadProc();
-}
+  // remove o valor mais antigo e adiciona o novo no final
+  function push(chart, v) {
+    chart.data.datasets[0].data.shift();
+    chart.data.datasets[0].data.push(v);
+    chart.update("none");
+  }
 
-async function queryPerm() {
-  const path = document.getElementById("qp").value.trim(); if (!path) return;
-  const r = await fetch(`${API}/permissions?path=${encodeURIComponent(path)}`).then(r=>r.json());
-  const el = document.getElementById("qr");
-  el.textContent = r.error ? r.error : `${r.octal}  |  dono: ${r.owner}  |  grupo: ${r.group}`;
-  el.style.display = "block";
-}
 
-async function doChmod() {
-  const path = document.getElementById("cp").value.trim(), mode = document.getElementById("cm").value.trim();
-  if (!path || !mode) return;
-  const r = await fetch(`${API}/permissions`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({path,mode})}).then(r=>r.json());
-  msg("cmsg", r.msg, r.ok);
-}
+  // ── polling: busca dados do backend a cada 2 segundos ─────
+  async function poll() {
+    try {
+      // faz as duas requisições ao mesmo tempo
+      const [c, m] = await Promise.all([
+        fetch(API + "/cpu").then(r => r.json()),
+        fetch(API + "/memory").then(r => r.json()),
+      ]);
 
-async function doChown() {
-  const path = document.getElementById("op").value.trim(), owner = document.getElementById("oo").value.trim();
-  if (!path || !owner) return;
-  const r = await fetch(`${API}/permissions`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({path,owner})}).then(r=>r.json());
-  msg("omsg", r.msg, r.ok);
-}
+      // atualiza os cards de resumo
+      document.getElementById("cpu-v").textContent = c.percent.toFixed(1) + "%";
+      document.getElementById("cpu-s").textContent = c.cores + " núcleos";
+      document.getElementById("mem-v").textContent = m.used_mb.toFixed(0) + " MB";
+      document.getElementById("mem-s").textContent = m.percent.toFixed(1) + "% usado";
+      document.getElementById("mem-f").textContent = m.free_mb.toFixed(0) + " MB";
+      document.getElementById("mem-t").textContent = m.total_mb.toFixed(0) + " MB total";
 
-function msg(id, txt, ok) {
-  const el = document.getElementById(id);
-  el.textContent = txt; el.className = "msg "+(ok?"ok":"er"); el.style.display = "block";
-  clearTimeout(el._t); el._t = setTimeout(() => el.style.display = "none", 4000);
-}
+      // atualiza os gráficos
+      push(gc, c.percent);
+      push(gm, m.percent);
+
+      // gera as barras por núcleo (só monta o HTML na primeira vez)
+      const div = document.getElementById("cores");
+      if (div.children.length !== c.per_core.length)
+        div.innerHTML = c.per_core.map((_, i) => `
+          <div class="bar-row">
+            <span style="width:48px">Core ${i}</span>
+            <div class="bar-track"><div class="bar-fill" id="f${i}" style="width:0%"></div></div>
+            <span id="l${i}" style="width:30px;text-align:right">0%</span>
+          </div>`).join("");
+
+      // atualiza largura e texto de cada barra
+      c.per_core.forEach((p, i) => {
+        const f = document.getElementById("f" + i);
+        const l = document.getElementById("l" + i);
+        if (!f) return;
+        f.style.width = p + "%";
+        l.textContent = p.toFixed(0) + "%";
+      });
+
+    } catch (e) { console.warn(e); } // se o backend estiver offline, ignora silenciosamente
+  }
+
+  poll();                    // roda imediatamente ao carregar a página
+  setInterval(poll, 2000);   // repete a cada 2 segundos
+
+
+  // ── lista de processos ────────────────────────────────────
+  async function loadProc() {
+    const q  = document.getElementById("s").value;
+    const tb = document.getElementById("tbody");
+
+    tb.innerHTML = `<tr><td colspan="7" style="padding:20px;color:#666;text-align:center">Carregando…</td></tr>`;
+
+    const ps = await fetch(`${API}/processes?search=${encodeURIComponent(q)}`).then(r => r.json());
+
+    if (!ps.length) {
+      tb.innerHTML = `<tr><td colspan="7" style="padding:20px;color:#666;text-align:center">Nenhum processo.</td></tr>`;
+      return;
+    }
+
+    // monta uma linha por processo
+    tb.innerHTML = ps.map(p => `
+      <tr>
+        <td style="color:#666">${p.pid}</td>
+        <td>${p.name}</td>
+        <td style="color:#888">${p.user}</td>
+        <td style="color:#888">${p.status}</td>
+        <td>${p.cpu}%</td>
+        <td>${p.mem_mb}</td>
+        <td><button class="kill" onclick="doKill(${p.pid}, '${p.name}')">✕</button></td>
+      </tr>`).join("");
+  }
+
+  // envia DELETE para o backend encerrar o processo
+  async function doKill(pid, name) {
+    if (!confirm(`Encerrar "${name}" (PID ${pid})?`)) return;
+    const r = await fetch(`${API}/processes/${pid}`, { method: "DELETE" }).then(r => r.json());
+    msg("pmsg", r.msg, r.ok);
+    loadProc(); // recarrega a lista após encerrar
+  }
+
+
+  // ── permissões ────────────────────────────────────────────
+
+  // consulta e exibe as permissões de um caminho
+  async function queryPerm() {
+    const path = document.getElementById("qp").value.trim();
+    if (!path) return;
+    const r  = await fetch(`${API}/permissions?path=${encodeURIComponent(path)}`).then(r => r.json());
+    const el = document.getElementById("qr");
+    el.textContent   = r.error ? r.error : `${r.octal}  |  dono: ${r.owner}  |  grupo: ${r.group}`;
+    el.style.display = "block";
+  }
+
+  // aplica chmod no caminho informado
+  async function doChmod() {
+    const path = document.getElementById("cp").value.trim();
+    const mode = document.getElementById("cm").value.trim();
+    if (!path || !mode) return;
+    const r = await fetch(`${API}/permissions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, mode })
+    }).then(r => r.json());
+    msg("cmsg", r.msg, r.ok);
+  }
+
+  // aplica chown no caminho informado
+  async function doChown() {
+    const path  = document.getElementById("op").value.trim();
+    const owner = document.getElementById("oo").value.trim();
+    if (!path || !owner) return;
+    const r = await fetch(`${API}/permissions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, owner })
+    }).then(r => r.json());
+    msg("omsg", r.msg, r.ok);
+  }
+
+
+  // ── utilitário: exibe mensagem de sucesso ou erro ─────────
+  function msg(id, txt, ok) {
+    const el = document.getElementById(id);
+    el.textContent   = txt;
+    el.className     = "msg " + (ok ? "ok" : "er");
+    el.style.display = "block";
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.style.display = "none", 4000); // some após 4s
+  }
 </script>
 </body>
 </html>
